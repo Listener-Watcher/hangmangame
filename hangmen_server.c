@@ -44,13 +44,14 @@ int main(int argc, char *argv[])
      {
 	bzero(sent_msg,256);
 	bzero(buffer,256);
-	char temp[256] = "temp";
-	sent_msg[0] = 0;
-	sent_msg[1] = strlen(temp);
-	sent_msg[2] = 0;
+	sent_msg[0] = '0';
+	sent_msg[1] = '5';
+	sent_msg[2] = '0';
      	status = read(newsockfd,buffer,255);
      	if (status < 0) error("ERROR reading from socket");
-	for(int i=0;i<strlen(temp);i++)
+	int word_len = sent_msg[1]-'0';
+	int inc_len = 0;
+	for(int i=0;i<word_len;i++)
 	{
 		sent_msg[i+3]='_';
 	}
@@ -58,14 +59,15 @@ int main(int argc, char *argv[])
 	if(status<0) error("ERROR writing to socket");
 	int win = 0;
 	int lose = 0;
+	char word[256] = "mongo";
 	while((!win)&&(!lose))
 	{	
      		status = read(newsockfd,buffer,255);
      		if (status < 0) error("ERROR reading from socket");
 		int guessed = 0;
-		for(int i=0;i<strlen(temp);i++)
+		for(int i=0;i<word_len;i++)
 		{
-			if(temp[i]==buffer[1])
+			if(word[i]==buffer[1])
 			{
 				sent_msg[i+3]=buffer[1];
 				guessed = 1;
@@ -73,7 +75,7 @@ int main(int argc, char *argv[])
 		}
 		win = 1;
 		lose = 0;
-		for(int i=0;i<strlen(temp);i++)
+		for(int i=0;i<word_len;i++)
 		{
 			if(sent_msg[i+3]=='_')
 				win = 0;
@@ -81,10 +83,10 @@ int main(int argc, char *argv[])
 
 		if(!guessed)
 		{
-			sent_msg[3+strlen(temp)+sent_msg[2]] = buffer[1];
-			sent_msg[2] = sent_msg[2]+1;
+			sent_msg[3+sent_msg[1]+sent_msg[2]] = buffer[1];
+			inc_len = inc_len+1;
 		}
-		if(sent_msg[2]>=6)
+		if(inc_len>=6)
 		{
 			bzero(sent_msg,256);
 			char sent_temp[256]="You Lose!\nGame Over!\n";
@@ -109,6 +111,7 @@ int main(int argc, char *argv[])
 		}
 		status = write(newsockfd,sent_msg,strlen(sent_msg));
 		if(status<0) error("ERROR writing to socket");
+		printf("%d%d",win,lose);
 	}
 	close(newsockfd);
 	bzero(buffer,256);
