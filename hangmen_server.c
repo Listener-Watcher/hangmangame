@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <ctype.h>
-#include <stdlib.h>
+#include <stdlib.h> // atoi
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h> 
@@ -83,11 +83,11 @@ int main(int argc, char *argv[])
 	bzero(sent_msg,256);
 	bzero(buffer,256);
 	sent_msg[0] = '0';
-	int inc_len = 0;
 	int word_len = strlen(word);
 	char word_l = strlen(word)+'0';
 	sent_msg[1] = word_l;
 	sent_msg[2] = '0';
+	int inc_len = sent_msg[2]-'0';
      	status = read(newsockfd,buffer,255);
      	if (status < 0) error("ERROR reading from socket");
 	for(int i=0;i<word_len;i++)
@@ -110,6 +110,7 @@ int main(int argc, char *argv[])
 				sent_msg[i+3]=buffer[1];
 				guessed = 1;
 			}
+			
 		}
 		win = 1;
 		lose = 0;
@@ -121,8 +122,9 @@ int main(int argc, char *argv[])
 
 		if(!guessed)
 		{
-			sent_msg[3+sent_msg[1]+sent_msg[2]] = buffer[1];
+			sent_msg[3+inc_len+word_len] = buffer[1];
 			inc_len = inc_len+1;
+			sent_msg[2] = inc_len+'0';
 		}
 		if(inc_len>=6)
 		{
@@ -159,3 +161,4 @@ int main(int argc, char *argv[])
      close(sockfd);
      return 0; 
 }
+
