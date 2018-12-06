@@ -35,8 +35,9 @@ int main(int argc, char *argv[])
      if (bind(sockfd, (struct sockaddr *) &serv_addr,
               sizeof(serv_addr)) < 0) 
               error("ERROR on binding");
-     listen(sockfd,3);
+     listen(sockfd,5);
      cli_len = sizeof(cli_addr);
+
      while(newsockfd = accept(sockfd, 
                  (struct sockaddr *) &cli_addr, 
                  &cli_len))
