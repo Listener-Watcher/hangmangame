@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <ctype.h>
-#include <stdlib.h> // atoi
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
-
+#include<time.h>
 void error(const char *msg)
 {
     perror(msg);
@@ -42,15 +42,54 @@ int main(int argc, char *argv[])
                  (struct sockaddr *) &cli_addr, 
                  &cli_len))
      {
+	static const char filename[] = "hangman_words.txt";
+	FILE *file = fopen(filename,"r");
+	int count = 0;
+	if(file!=NULL)
+	{
+		char line[128];
+		while(fgets(line,sizeof line,file)!=NULL)
+		{
+			count++;
+		}
+	fclose(file);
+	}
+	else
+	{
+		error("file not exist");
+	}
+	srand(time(0));
+	count = rand()%count+1;
+	file = fopen(filename,"r");
+	int t_count = 0;
+	char word[256];
+	bzero(word,256);
+	if(file!=NULL)
+	{
+		char line[128];
+		while(fgets(line,sizeof line,file)!=NULL)
+		{
+			t_count++;
+			if(t_count == count)
+			{
+				for(int i=0;i<strlen(line)-1;i++)
+				{
+					word[i] = line[i];
+				}
+			}
+		}
+	fclose(file);
+	}
 	bzero(sent_msg,256);
 	bzero(buffer,256);
 	sent_msg[0] = '0';
-	sent_msg[1] = '5';
+	int inc_len = 0;
+	int word_len = strlen(word);
+	char word_l = strlen(word)+'0';
+	sent_msg[1] = word_l;
 	sent_msg[2] = '0';
      	status = read(newsockfd,buffer,255);
      	if (status < 0) error("ERROR reading from socket");
-	int word_len = sent_msg[1]-'0';
-	int inc_len = 0;
 	for(int i=0;i<word_len;i++)
 	{
 		sent_msg[i+3]='_';
@@ -59,7 +98,6 @@ int main(int argc, char *argv[])
 	if(status<0) error("ERROR writing to socket");
 	int win = 0;
 	int lose = 0;
-	char word[256] = "mongo";
 	while((!win)&&(!lose))
 	{	
      		status = read(newsockfd,buffer,255);
