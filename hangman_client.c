@@ -105,8 +105,8 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
-			int word_len = r_msg[1];
-			int inc_len = r_msg[2];
+			int word_len = r_msg[1]-'0';
+			int inc_len = r_msg[2]-'0';
 			bzero(temp,256);
 			for(int i=0;i<word_len;i++)
 			{
@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
 			bzero(temp,256);
 			for(int i=0;i<inc_len;i++)
 			{
-				temp[i] = r_msg[3+word_len];
+				temp[i] = r_msg[i+3+word_len];
 			}
 			printf("Incorrect Guesses: %s\n\n",temp);
 		}
