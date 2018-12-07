@@ -1,8 +1,3 @@
-/**
-    Handle multiple socket connections with select and fd_set on Linux
-    Raj Abishek <rajabishek@hotmail.com>
-*/
-  
 #include <stdio.h>
 #include <string.h>   //strlen
 #include <stdlib.h>
