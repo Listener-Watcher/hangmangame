@@ -1,48 +1,27 @@
-#include <stdio.h>
-#include <ctype.h>
-#include <stdlib.h> // atoi
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <sys/socket.h>
+#include <stdio.h>
 #include <netinet/in.h>
-#include<time.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/shm.h>
+#include<time.h> 
 void error(const char *msg)
 {
     perror(msg);
     exit(1);
-}
-
-int main(int argc, char *argv[])
+} 
+//传进来的sockfd，就是互相建立好连接之后的socket文件描述符
+//通过这个sockfd，可以完成 [服务端]<--->[客户端] 互相收发数据
+void clientProcess(int newsockfd)
 {
-     int sockfd, newsockfd, portno;
-     socklen_t cli_len;
-     char buffer[256];
-     char sent_msg[256];
-     struct sockaddr_in serv_addr, cli_addr;
-     int status;
-     if (argc < 2||argc>=3) {
-         error("ERROR, no port provided\n");
-     }
-     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-     if (sockfd < 0) 
-        error("ERROR opening socket");
-     bzero((char *) &serv_addr, sizeof(serv_addr));
-     portno = atoi(argv[1]); // convert string to integer, get port number
-     serv_addr.sin_family = AF_INET;
-     serv_addr.sin_addr.s_addr = INADDR_ANY;
-     serv_addr.sin_port = htons(portno);
-     if (bind(sockfd, (struct sockaddr *) &serv_addr,
-              sizeof(serv_addr)) < 0) 
-              error("ERROR on binding");
-     listen(sockfd,5);
-     cli_len = sizeof(cli_addr);
-
-     while(newsockfd = accept(sockfd, 
-                 (struct sockaddr *) &cli_addr, 
-                 &cli_len))
-     {
-	static const char filename[] = "hangman_words.txt";
+    char buffer[256];
+    char sent_msg[256];
+    int status;
+    static const char filename[] = "hangman_words.txt";
 	FILE *file = fopen(filename,"r");
 	int count = 0;
 	if(file!=NULL)
@@ -99,7 +78,7 @@ int main(int argc, char *argv[])
 	int win = 0;
 	int lose = 0;
 	while((!win)&&(!lose))
-	{	
+	{
      		status = read(newsockfd,buffer,255);
      		if (status < 0) error("ERROR reading from socket");
 		int guessed = 0;
@@ -110,7 +89,7 @@ int main(int argc, char *argv[])
 				sent_msg[i+3]=buffer[1];
 				guessed = 1;
 			}
-			
+
 		}
 		win = 1;
 		lose = 0;
@@ -153,12 +132,74 @@ int main(int argc, char *argv[])
 		if(status<0) error("ERROR writing to socket");
 		printf("%d%d",win,lose);
 	}
-	close(newsockfd);
-	bzero(buffer,256);
-     }
-     error("ERROR on accept");
-     close(newsockfd);
-     close(sockfd);
-     return 0; 
+    close(newsockfd);
 }
+ 
+int main(int argc, char **argv)
+{
+    //定义IPV4的TCP连接的套接字描述符
+    int server_sockfd = socket(AF_INET,SOCK_STREAM, 0);
+   int num_client = 0;
+  if(argc<2||argc>=3)
+  {
+	 error("ERROR,no port provided\n");
+  } 
+  int portno = atoi(argv[1]);
+    //定义sockaddr_in
+    struct sockaddr_in server_sockaddr;
+    server_sockaddr.sin_family = AF_INET;
+    server_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_sockaddr.sin_port = htons(portno);
+ 
+    //bind成功返回0，出错返回-1
+    if(bind(server_sockfd,(struct sockaddr *)&server_sockaddr,sizeof(server_sockaddr))==-1)
+    {
+        perror("bind");
+        exit(1);//1为异常退出
+    }
+    printf("bind success.\n");
+ 
+    //listen成功返回0，出错返回-1，允许同时帧听的连接数为QUEUE_SIZE
+    if(listen(server_sockfd,QUEUE_SIZE) == -1)
+    {
+        perror("listen");
+        exit(1);
+    }
+    printf("listen success.\n");
+ 
+    for(;;)
+    {
+        struct sockaddr_in client_addr;
+        socklen_t length = sizeof(client_addr);
+        //进程阻塞在accept上，成功返回非负描述字，出错返回-1
+        int conn = accept(server_sockfd, (struct sockaddr*)&client_addr,&length);
+	if(num_client<3){
+        if(conn<0)
+        {
+            perror("connect");
+            exit(1);
+        }
+        printf("new client accepted.\n");
+	num_client++;
+	printf("number of clients:%d\n",num_client);
+        pid_t childid;
+        if(childid=fork()==0)//子进程
+        {
+            printf("child process: %d created.\n", getpid());
+            close(server_sockfd);//在子进程中关闭监听
+            clientProcess(conn);
+            num_client--;
+            exit(1);
 
+        }
+	}
+	else
+	{
+		close(conn);
+	}
+    }
+ 
+    printf("closed.\n");
+    close(server_sockfd);
+    return 0;
+}
