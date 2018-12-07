@@ -21,12 +21,13 @@
 int main(int argc , char *argv[])
 {
     int opt = TRUE;
-    int master_socket , addrlen , new_socket , client_socket[30] , max_clients = 30 , activity, i , valread , sd;
+    int master_socket , addrlen , new_socket , client_socket[3] , max_clients = 3 , activity, i , valread , sd;
     int max_sd;
+    int status;
     struct sockaddr_in address;
       
     char buffer[1025];  //data buffer of 1K
-      
+    char sent_msg[256];
     //set of socket descriptors
     fd_set readfds;
       
@@ -122,13 +123,60 @@ int main(int argc , char *argv[])
             printf("New connection , socket fd is %d , ip is : %s , port : %d \n" , new_socket , inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
         
             //send new connection greeting message
-            if( send(new_socket, message, strlen(message), 0) != strlen(message) ) 
-            {
-                perror("send");
-            }
-              
-            puts("Welcome message sent successfully");
-              
+static const char filename[] = "hangman_words.txt";
+	FILE *file = fopen(filename,"r");
+	int count = 0;
+	if(file!=NULL)
+	{
+		char line[128];
+		while(fgets(line,sizeof line,file)!=NULL)
+		{
+			count++;
+		}
+	fclose(file);
+	}
+	else
+	{
+		error("file not exist");
+	}
+	srand(time(0));
+	count = rand()%count+1;
+	file = fopen(filename,"r");
+	int t_count = 0;
+	char word[256];
+	bzero(word,256);
+	if(file!=NULL)
+	{
+		char line[128];
+		while(fgets(line,sizeof line,file)!=NULL)
+		{
+			t_count++;
+			if(t_count == count)
+			{
+				for(int i=0;i<strlen(line)-1;i++)
+				{
+					word[i] = line[i];
+				}
+			}
+		}
+	fclose(file);
+	}
+	bzero(sent_msg,256);
+	bzero(buffer,256);
+	sent_msg[0] = '0';
+	int word_len = strlen(word);
+	char word_l = strlen(word)+'0';
+	sent_msg[1] = word_l;
+	sent_msg[2] = '0';
+	int inc_len = sent_msg[2]-'0';
+    status = read(new_socket,buffer,255);
+    if (status < 0) error("ERROR reading from socket");
+	for(int i=0;i<word_len;i++)
+	{
+		sent_msg[i+3]='_';
+	}
+	status = write(newsockfd,sent_msg,strlen(sent_msg));
+	if(status<0) error("ERROR writing to socket");      
             //add new socket to array of sockets
             for (i = 0; i < max_clients; i++) 
             {
@@ -150,25 +198,65 @@ int main(int argc , char *argv[])
               
             if (FD_ISSET( sd , &readfds)) 
             {
-                //Check if it was for closing , and also read the incoming message
-                if ((valread = read( sd , buffer, 1024)) == 0)
-                {
-                    //Somebody disconnected , get his details and print
-                    getpeername(sd , (struct sockaddr*)&address , (socklen_t*)&addrlen);
-                    printf("Host disconnected , ip %s , port %d \n" , inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
-                      
-                    //Close the socket and mark as 0 in list for reuse
+                int win = 0;
+	            int lose = 0;
+                while((!win)&&(!lose))
+	            {	
+     		        status = read(new_socket,buffer,255);
+     		        if (status < 0) error("ERROR reading from socket");
+		            int guessed = 0;
+		            for(int i=0;i<word_len;i++)
+		            {
+			            if(word[i]==buffer[1])
+			            {
+				            sent_msg[i+3]=buffer[1];
+				            guessed = 1;
+			            }
+			
+		            }
+		            win = 1;
+		            lose = 0;
+		            for(int i=0;i<word_len;i++)
+		            {
+			            if(sent_msg[i+3]=='_')
+				        win = 0;
+		            }
+
+		            if(!guessed)
+		            {
+			            sent_msg[3+inc_len+word_len] = buffer[1];
+			            inc_len = inc_len+1;
+			            sent_msg[2] = inc_len+'0';
+		            }
+		            if(inc_len>=6)
+		            {
+			            bzero(sent_msg,256);
+			            char sent_temp[256]="You Lose!\nGame Over!\n";
+			            int l_msg = strlen(sent_temp);
+			            for(int i=l_msg-1;i>=0;i--)
+			            {
+				            sent_msg[i+1] = sent_temp[i];
+			            }
+			            sent_msg[0] = l_msg;
+			            lose = 1;
+		            }
+		            if(win)
+		            {
+			            bzero(sent_msg,256);
+			            char sent_temp[256] = "You Win!\nGame Over!\n";
+			            int l_msg = strlen(sent_temp);
+			            for(int i=l_msg-1;i>=0;i--)
+			            {
+				            sent_msg[i+1] = sent_temp[i];
+			            }
+		   	            sent_msg[0] = l_msg;
+		            }
+		            status = write(new_socket,sent_msg,strlen(sent_msg));
+		            if(status<0) error("ERROR writing to socket");
+		            printf("%d%d",win,lose);
+	            }
                     close( sd );
                     client_socket[i] = 0;
-                }
-                  
-                //Echo back the message that came in
-                else
-                {
-                    //set the string terminating NULL byte on the end of the data read
-                    buffer[valread] = '\0';
-                    send(sd , buffer , strlen(buffer) , 0 );
-                }
             }
         }
     }
