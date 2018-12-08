@@ -75,8 +75,12 @@ int main(int argc, char *argv[])
 	{
 		temp[i]=r_msg[i+3];
 	}
-	printf("\n%s\n",temp);
-	printf("Incorrect Guesses:\n\n");
+    for(int i=0;i<strlen(temp);i++)
+    {
+        printf("%c ",temp[i]);
+    }
+
+	printf("\nIncorrect Guesses:\n\n");
 	int end_game = 1;
 	while(end_game)
 	{
@@ -106,7 +110,7 @@ int main(int argc, char *argv[])
 			{
 				temp[i]=r_msg[i+1];
 			}
-			printf("%s",temp);
+            printf("%s",temp);
 			end_game = 0;
 		}
 		else
@@ -118,13 +122,16 @@ int main(int argc, char *argv[])
 			{
 				temp[i] = r_msg[3+i];
 			}
-			printf("%s\n",temp);
+            for(int i=0;i<strlen(temp);i++)
+            {
+                printf("%c ",temp[i]);
+            }
 			bzero(temp,256);
 			for(int i=0;i<inc_len;i++)
 			{
 				temp[i] = r_msg[i+3+word_len];
 			}
-			printf("Incorrect Guesses: %s\n\n",temp);
+			printf("\nIncorrect Guesses: %s\n\n",temp);
 		}
 	}
     }
