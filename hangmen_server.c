@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <string.h> //strlen
 #include <stdlib.h>
@@ -130,7 +129,18 @@ int controller_guess(int client_no, char guess_letter){
     if(inc_len>=6)
     {
       bzero(sent_msg,256);
-      char sent_temp[256]="You Lose!\nGame Over!\n";
+      char sent_temp[256]="The word was ";
+      int l_a = strlen(sent_temp);
+      for(int i=0;i<strlen(answer);i++)
+      {
+          sent_temp[l_a+i] = answer[i];
+      }
+      char temp_2[256] = "\nYou Lose!\nGame Over!\n";
+      l_a = strlen(sent_temp);
+      for(int i=0;i<strlen(temp_2);i++)
+      {
+          sent_temp[l_a+i] = temp_2[i];
+      }
       int l_msg = strlen(sent_temp);
       for(int i=l_msg-1;i>=0;i--)
       {
@@ -143,7 +153,18 @@ int controller_guess(int client_no, char guess_letter){
     if(win)
     {
       bzero(sent_msg,256);
-      char sent_temp[256] = "You Win!\nGame Over!\n";
+      char sent_temp[256]="The word was ";
+      int l_a = strlen(sent_temp);
+      for(int i=0;i<strlen(answer);i++)
+      {
+          sent_temp[l_a+i] = answer[i];
+      }
+      char temp_2[256] = "\nYou Win!\nGame Over!\n";
+      l_a = strlen(sent_temp);
+      for(int i=0;i<strlen(temp_2);i++)
+      {
+          sent_temp[l_a+i] = temp_2[i];
+      }
       int l_msg = strlen(sent_temp);
       for(int i=l_msg-1;i>=0;i--)
       {
@@ -306,7 +327,7 @@ int main(int argc , char *argv[])
                         break;
 
                     }
-                }                
+                }
                 printf("Space is not full\n");
             }
             printf("Current_Clients: %d\n", current_clients);
